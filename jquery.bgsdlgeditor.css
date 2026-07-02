@@ -1,0 +1,24 @@
+.bgsdlgeditorMain {border:1px solid #999; padding:0 1px 1px; background-color:white}
+.bgsdlgeditorMain iframe {border:none; margin:0; padding:0}
+.bgsdlgeditorMain textarea {border:none; margin:0; padding:0; overflow-y:scroll; font:10pt Arial,Verdana; resize:none; outline:none /* webkit grip focus */}
+/*.bgsdlgeditorToolbar {background: url('images/toolbar.gif') repeat}*/
+.bgsdlgeditorGroup {float:left; height:26px}
+.bgsdlgeditorButton {float:left; width:20px; height:20px; border:1px solid #999; margin:1px 0 1px 0 /*background: url('images/buttons.gif')*/}
+.bgsdlgeditorDisabled {opacity:0.3; filter:alpha(opacity=30)}
+.bgsdlgeditorDivider {float:left; width:1px; height:23px; margin:1px 0 1px 0; background:#CCC}
+.bgsdlgeditorPopup {border:solid 1px #999; background-color:white; position:absolute; font:10pt Arial,Verdana; cursor:default; z-index:10000}
+.bgsdlgeditorList div {padding:2px 4px 2px 4px}
+.bgsdlgeditorList p,
+.bgsdlgeditorList h1,
+.bgsdlgeditorList h2,
+.bgsdlgeditorList h3,
+.bgsdlgeditorList h4,
+.bgsdlgeditorList h5,
+.bgsdlgeditorList h6,
+.bgsdlgeditorList font {padding:0; margin:0; background-color:Transparent}
+.bgsdlgeditorColor {width:150px; padding:1px 0 0 1px}
+.bgsdlgeditorColor div {float:left; width:14px; height:14px; margin:0 1px 1px 0}
+.bgsdlgeditorPrompt {background-color:#F6F7F9; padding:4px; font-size:8.5pt}
+.bgsdlgeditorPrompt input,
+.bgsdlgeditorPrompt textarea {font:8.5pt Arial,Verdana;}
+.bgsdlgeditorMsg {background-color:#FDFCEE; width:150px; padding:4px; font-size:8.5pt}

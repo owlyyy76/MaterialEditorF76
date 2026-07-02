@@ -1,0 +1,810 @@
+<html>
+	<head>
+
+		<link type="text/css" href="jquery.jgrowl.css" rel="stylesheet" />
+
+		<link rel="stylesheet" href="css/screen.css" />
+	<style>
+        body {
+            background-color:#000;
+            color:#eee;
+            margin: 10px;
+        }
+
+	.ui-combobox {
+		position: relative;
+		display: inline-block;
+	}
+	.ckComponentHolder {
+		/*padding:1;*/
+	}
+	.ui-autocomplete-input {
+		margin: 0;
+		padding: 0.3em;
+	}
+	.ui-highlight-fileselection {
+		background-color: yellow;
+	}
+	.errorMessage {
+		background-color: red !important;
+	}
+	/*.ui-brett-change-tabs li a {
+		background: #99bbdd url(css/dark-hive/images/ui-bg_highlight-hard_20_767676_1x100.png) 50% 50% repeat-x;
+		background-color: #99bbdd;
+	}
+	.ui-brett-change-tabs,
+	.ui-widget-content .ui-brett-change-tabs,
+	.ui-widget-header .ui-brett-change-tabs {
+		background: #99bbdd url(css/dark-hive/images/ui-bg_highlight-hard_20_767676_1x100.png) 50% 50% repeat-x;
+	}*/
+
+
+
+    .requiresMaterial.cover {
+        opacity:0.1;
+    }
+
+    fieldset {
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #333;
+    }
+
+    legend {
+        border: inherit;
+        margin: 0 5px;
+        padding: 3px 5px;
+        background-color: #333;
+    }
+
+    #MainContainer {
+        width: 600px;
+        position: relative;
+    }
+
+    #ActiveMaterial {
+        width: 100%;
+    }
+
+    #ControlButtons { text-align: center; }
+    #ControlButtons .ckControlButtonHolder {
+        display: inline;
+    }
+
+    .ckComponentHolder {
+        padding: 0.2em 0;
+    }
+
+    .ckComponentFilename label {
+        display: block;
+        width: 100%;
+    }
+
+    .ckComponentFilename input {
+        display: inline;
+        width: 66%;
+    }
+
+    .ckComponentFilename .ckbuttonFileBrowse {
+        display: inline;
+        width: 15%;
+        margin-left:2%;
+        margin-right: 0;
+    }
+
+    .ckComponentFilename .ckbuttonFileClear {
+        display: inline;
+        width: 15%;
+        margin-left: 2%;
+        margin-right: 0;
+    }
+
+    .ckComponentSpinner span.ui-spinner {
+        width: 5em;
+    }
+	</style>
+		<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+
+
+        <script type="text/javascript" src="js/jquery.jstree.js"></script>
+
+        <link rel="stylesheet" href="css/dark-hive/jquery-ui-1.10.3.custom.min.css" />
+        <script type="text/javascript" src="js/jquery-ui-1.10.3.custom.min.js"></script>
+		<script type="text/javascript" src="jquery.qtip-1.0.0-rc3.min.js"></script>
+		<script type="text/javascript" src="jqCKWebBuilder.js?ver=1"></script>
+		<script type="text/javascript" src="tesscript.js"></script>
+		<script type="text/javascript" src="jquery.jgrowl.js"></script>
+		<script type="text/javascript" src="MaterialEditor.js?ver=1"></script>
+		<script type="text/javascript">
+		
+			function SetDefaults()
+			{
+				$.getJSON(httpHeader() + 'getdefaultmaterial', function(data) {
+					InstallDataIntoFields(data);
+				});
+				$('.ui-tabs-selected a').addClass('ui-brett-change-tabs');
+			}
+			
+			function InstallData(path,data)
+			{
+				InstallDataIntoFields(data);
+				var pushAs = '';
+				if (ValidateMaterialSelectedSilent()) {
+					$('.ckMaterialFileSelected').each(function() {
+						pushAs = '?file=' + $(this).data("path");
+					});
+				}
+				SaveMaterialUtility('pushmaterial'+pushAs, SilentSuccess, ErrorOnPush);
+			}
+			
+			function JGrowlError(msg)
+			{
+				$.jGrowl(msg, {sticky : true, theme: 'errorMessage'});
+			}
+
+			function ValidateMaterialSelectedSilent()
+			{
+				var numMaterials = $('.ckMaterialFileSelected').length;
+				return numMaterials == 1;
+			}
+			
+			function ValidateMaterialSelected()
+			{
+				var numMaterials = $('.ckMaterialFileSelected').length;
+				if (numMaterials == 0) {
+					JGrowlError("No material selected");
+				} else if (numMaterials > 1) {
+					JGrowlError("Too many materials selected (this should be impossible; see Brett)");
+				}
+				return (numMaterials == 1);
+			}
+			
+			function CheckoutAdd()
+			{
+				if (ValidateMaterialSelected()) {
+					$('.ckMaterialFileSelected').each(function() {
+                        var dataPath = $(this).data("path");
+						$.ajax({url: httpHeader() + 'checkoutfile?file=' + dataPath,
+							    success: function(data, textStatus, jqXHR) {
+									$.jGrowl("Success!");
+							    },
+							    error: function(data, textStatus, jqXHR) {
+									JGrowlError("Error checking out file -- check your perforce setup!!");
+							    }
+						});
+					}).addClass("ckMaterialFileCheckedOut");
+				}
+			}
+			// Global variable for clicking away without saving
+			var ChangingMaterialsIsOkay = true;
+            var gPushMaterial = true;
+			
+			function Revert()
+			{
+				if (ValidateMaterialSelected()) {
+					$('.ckMaterialFileSelected').each(function() {
+                        var dataPath = $(this).data("path");
+						$.ajax({url: httpHeader() + 'revertfile?file=' + dataPath,
+							    success: function(data, textStatus, jqXHR) {
+									$.jGrowl("Success!");
+							    },
+							    error: function(data, textStatus, jqXHR) {
+									JGrowlError("Error reverting file -- check your perforce setup!!");
+							    }
+						});
+					}).removeClass("ckMaterialFileCheckedOut");
+				}
+			}
+			//var getStackTrace = function() {
+			//  var obj = {};
+			//  Error.captureStackTrace(obj, getStackTrace);
+			//  return obj.stack;
+			//};
+			
+			var nextMaterialToSelect = '';
+			
+			function DisplaySuccessAndAllowDialogFreeChangeOfMaterial(data,textStatus,jqXHR) {
+				if (data != undefined && data.error != undefined) {
+					JGrowlError("Error! "+data.error);
+				} else {
+					$.jGrowl("Success!");
+					ChangingMaterialsIsOkay = true;
+				}
+			}
+			
+			function SwitchAndClearVariables()
+			{
+				SwitchToNewlySelectedMaterial();
+				nextMaterialToSelect = '';
+				PostMaterialGetCallback($("#FileTree"));
+			}
+			
+			function DisplaySuccessAllowChangesRebuildSelectDataSpecifiedMaterial(data,textStatus,jqXHR) {
+				if (data != undefined && data.error != undefined) {
+					JGrowlError("Error! "+data.error);
+				} else {
+					$.jGrowl("Success!");
+					ChangingMaterialsIsOkay = true;
+					nextMaterialToSelect = data.filename;
+					RebuildMaterialTree(SwitchAndClearVariables);
+				}
+			}
+			
+			function SaveMaterialUtility(callType, successFunction, errorFunction)
+			{
+				if (successFunction == undefined) {
+					successFunction = function(data,textStatus,jqXHR) {
+								if (data != undefined && data.error != undefined) {
+									JGrowlError("Error! "+data.error);
+								} else {
+									ChangingMaterialsIsOkay = true;
+									$.jGrowl("Success!");
+								}
+							};
+				}
+				if (errorFunction == undefined) {
+					errorFunction = function(jqXHR,textStatus,errorThrown) {
+						console.log(textStatus);
+						console.log(errorThrown);
+							JGrowlError("Unable to save file!");
+						}
+				}
+				var newdata = RetrieveObjectFromPageMetaData();
+				// Sadly, we need to iterate this and provide 
+				
+				//console.log(JSON.stringify(newdata));
+				//console.log(getStackTrace());			
+				return $.ajax({type: "POST", url:httpHeader() + callType,
+						datatype: "json",
+						data: JSON.stringify(newdata),
+						error: errorFunction,
+						success: successFunction
+				});
+			}
+			
+			function SaveMaterialAs()
+			{
+				SaveMaterialUtility('savematerialas', DisplaySuccessAllowChangesRebuildSelectDataSpecifiedMaterial);
+			}
+			
+			function SaveMaterial()
+			{
+				if (ValidateMaterialSelected()) {
+					$('.ckMaterialFileSelected').each(function() {
+                        var dataPath = $(this).data("path");
+						SaveMaterialUtility('savematerial?file=' + dataPath, DisplaySuccessAndAllowDialogFreeChangeOfMaterial).then(function(){
+                            SaveMaterialUtility('pushmaterial?file='+dataPath, SilentSuccess, ErrorOnPush);
+                        });
+					});
+				}
+			}
+			
+			
+			function AddControlButton(divName, buttonName, friendlyName, titleText)
+			{
+				var divClasses = 'ckControlButtonHolder';
+				var divStyles = '';
+				$('<div id="'+divName+'" class="ckComponentHolder '+divClasses+'" style="'+divStyles+'">'+
+					'<button id="'+buttonName+'" class="ckControlButton" style="'+divStyles+'">'+friendlyName+'</button></div>')
+					  .appendTo($('#ControlButtons'));
+
+			}
+			
+			function BuildFileTreeEntry(item, fileClass, folderClass, rootToStrip, showLockedAsRed)
+			{
+				var stuff = '';
+				if (item.path != undefined) {
+					var pathToUse = item.path;
+					if (rootToStrip != undefined && -1 != pathToUse.indexOf(rootToStrip)) {
+						pathToUse = pathToUse.substring(rootToStrip.length);
+					}
+					pathToUse = pathToUse.substring(pathToUse.lastIndexOf('/')+1);
+					if (item.isDir == true) {
+						stuff = stuff + '<li><a href="#'+pathToUse+'" class="'+folderClass+'">'+pathToUse+'</a><ul>';
+						stuff = stuff + BuildFileTreeHelper(item.files, fileClass, folderClass, rootToStrip, showLockedAsRed);
+						stuff = stuff + '</ul></li>';
+					} else {
+						var lockedClass = '';
+						if (showLockedAsRed && item.locked != undefined && item.locked == "true") {
+							lockedClass = 'locked';
+						}
+						var ckselected = '';
+						if (item.path == nextMaterialToSelect) {
+							ckselected = 'ckMaterialWeWantToSwitchTo';
+						}
+						stuff = '<li><a href="#'+pathToUse+'" class="'+fileClass+' '+ckselected+' '+lockedClass+'" data-path="'+item.path+'">'+pathToUse+'</a></li>';
+					}
+				}
+				return stuff;
+			}
+			
+			function BuildFileTreeHelper(fromArray, fileClass, folderClass, rootToStrip, showLockedAsRed)
+			{
+				var stuff = '';
+				if (Array.isArray(fromArray)) {
+					fromArray.map(function(item) {
+						stuff = stuff + BuildFileTreeEntry(item, fileClass, folderClass, rootToStrip, showLockedAsRed); 
+					});
+				} else {
+					stuff = stuff + BuildFileTreeEntry(fromArray, fileClass, folderClass, rootToStrip, showLockedAsRed);
+				}
+				return stuff;
+			}
+			
+			function BuildTopLevelFileTree(fromArray, fileClass, folderClass, rootToStrip, showLockedAsRed)
+			{
+				var stuff = '';
+				stuff = '<ul class="filetree-'+fileClass+'">';
+				stuff = stuff + BuildFileTreeHelper(fromArray, fileClass, folderClass, rootToStrip, showLockedAsRed);
+				stuff = stuff + '</ul>';
+				return stuff;
+			}
+			
+			function BuildFileTree(opts)
+			{
+				var rootStr = '';
+				var rootSep = '';
+				var extStr = '';
+				if (opts.root) {
+					rootStr = '?root=' + opts.root;
+				}
+				if (opts.ext) {
+					if (opts.root) {
+						rootSep = "&";
+					} else {
+						extStr = '?';
+					}
+					extStr = extStr + 'ext=' + opts.ext;
+				}
+				var additional = rootStr + rootSep + extStr;
+				$.getJSON( httpHeader()+'getfilenames'+additional, function (data) {
+
+					var stuff = BuildTopLevelFileTree(data["results"], opts.fileClass, opts.folderClass, opts.rootToStrip, opts.showLockedAsRed);
+					opts.intoDiv.append(stuff);
+                    opts.intoDiv.jstree({
+                        "themes": {
+                            "theme": "default",
+                            "dots": true,
+                            "icons": true
+                        },
+                        "plugins": ["html_data", "themes", "search", "ui"],
+                        "search": {
+                            "show_only_matches": true
+                        },
+                        "ui": {
+                            "select_limit": 1
+                        },
+                        "animation": 100
+                    });
+				}).done(function() {
+                    if (opts.postGetCallback != undefined) { opts.postGetCallback(opts.intoDiv); }
+                 });
+			}
+
+			function SwitchToNewlySelectedMaterial()
+			{
+				ChangingMaterialsIsOkay = true;
+				$('.ckMaterialFileSelected').removeClass('ckMaterialFileSelected');
+
+                var dataPath = $(".ckMaterialWeWantToSwitchTo").data("path");
+                $("#ActiveMaterial").val(dataPath);
+				$.getJSON(httpHeader() + 'getmaterialfromfile?file=' + dataPath, function(data) {
+					if (data != undefined) {
+						var extension = dataPath.split(".").pop( );
+						if ( extension != GetCurrentMaterialType() )
+						{
+							SetCurrentMaterialType(extension);
+							BuildMaterialFromMetaData(httpHeader(), $('#MainDiv'), InstallData, dataPath, data);
+						}
+						else
+						{
+							InstallData( dataPath, data );
+						}
+					}
+				}).then(function(){
+                    var toSwitch = $(".ckMaterialWeWantToSwitchTo");
+                    toSwitch.removeClass("ckMaterialWeWantToSwitchTo");
+                    toSwitch.addClass("ckMaterialFileSelected");
+                });
+			}
+			
+			function DoNotSwitchToNewlySelectedMaterial()
+			{
+				$('.ckMaterialWeWantToSwitchTo').removeClass('ckMaterialWeWantToSwitchTo');
+			}
+
+			
+			function PostMaterialGetCallback(treeDiv)
+			{
+                if(typeof(treeDiv) == "undefined") treeDiv = $("#FileTree");
+
+                treeDiv.delegate(".ckMaterialFile", "click", function(e){
+                    $("#FileTreeModal").dialog("close");
+                    var that = $(this);
+                    that.addClass("ckMaterialWeWantToSwitchTo");
+                    if (ChangingMaterialsIsOkay) {
+                        SwitchToNewlySelectedMaterial();
+                    } else {
+                        $("#dialog-confirm").dialog("open");
+                    }
+                    return false;
+
+                });
+			}
+			
+			function PostRootMaterialGetCallback()
+			{
+                $("#RootMaterialTree").delegate(".ckMaterialFile", "click", function(e) {
+
+                    var materialModal = $("#RootMaterialTreeModal");
+                    var materialTree = $("#RootMaterialTree");
+
+                    $('.ckTextureFileSelected').removeClass('ckTextureFileSelected');
+                    $(this).addClass('ckTextureFileSelected');
+
+                    var openedBy = materialModal.data("openedBy").substring(7);
+					
+					var editBoxName = '#editbox'+ openedBy;
+					var clearButtonName = "#clear"+ openedBy;
+					var dataPath = $(this).data("path");
+
+					$(editBoxName).val(dataPath.replace("data/materials/", ""));
+					$(clearButtonName).prop("disabled", false);
+
+					var pushAs = '';
+					if (ValidateMaterialSelectedSilent()) {
+						$('.ckMaterialFileSelected').each(function() {
+							var materialPath = $(".ckMaterialFileSelected").data("path");
+							pushAs = '?file=' + materialPath;
+						});
+					}
+					console.log("saving...");
+					SaveMaterialUtility('pushmaterial'+pushAs, SilentSuccess, ErrorOnPush);
+					// Set global variable for clicking away without saving
+					ChangingMaterialsIsOkay = false;
+
+					materialModal.dialog("close");
+
+					return false;
+				});
+			}
+			
+			function PostTextureGetCallback()
+			{
+                $("#TextureTree").delegate(".ckTextureFile", "click", function(e) {
+
+                    var textureModal = $("#TextureTreeModal");
+                    var textureTree = $("#TextureTree");
+
+                    $('.ckTextureFileSelected').removeClass('ckTextureFileSelected');
+                    $(this).addClass('ckTextureFileSelected');
+
+
+                    var openedBy = textureModal.data("openedBy").substring(7);
+
+                    if (ValidateTextureSelected()) {
+                        var editBoxName = '#editbox'+ openedBy;
+                        var clearButtonName = "#clear"+ openedBy;
+                        var dataPath = $(this).data("path");
+
+                        $(editBoxName).val(dataPath.replace("data/textures/", ""));
+                        $(clearButtonName).prop("disabled", false);
+
+                        var pushAs = '';
+                        if (ValidateMaterialSelectedSilent()) {
+                            $('.ckMaterialFileSelected').each(function() {
+                                var materialPath = $(".ckMaterialFileSelected").data("path");
+                                pushAs = '?file=' + materialPath;
+                            });
+                        }
+						console.log("saving...");
+                        SaveMaterialUtility('pushmaterial'+pushAs, SilentSuccess, ErrorOnPush);
+                        // Set global variable for clicking away without saving
+                        ChangingMaterialsIsOkay = false;
+
+                        textureModal.dialog("close");
+                    } else {
+                        console.log("ValidateTextureSelected FALSE");
+                    }
+
+					return false;
+				});
+			}
+
+			function ApplyMaterialsFilter(filterString)
+			{
+                var treeNode = $("#FileTree");
+                if (filterString.length)
+                {
+                    treeNode.jstree("search", filterString);
+                } else {
+                    treeNode.jstree("clear_search");
+                    treeNode.jstree("close_all", -1);
+                }
+			}
+			
+			function ApplyTexturesFilter(filterString)
+			{
+                var treeNode = $("#TextureTree");
+                if (filterString.length)
+                {
+                    treeNode.jstree("search", filterString);
+                } else {
+                    treeNode.jstree("clear_search");
+                    treeNode.jstree("close_all", -1);
+                }
+			}
+
+			function RebuildMaterialTree(callback)
+			{
+				if (callback == undefined) { callback = PostMaterialGetCallback; }
+				$('#FileTree ul').remove();
+				$('#treecontrol-Materials').remove();
+                var treeOpts = {
+                    intoDiv: $("#FileTree"),
+                    root: "data/materials",
+                    ext: "*.bg*m",
+                    treeControlDivName: "Materials",
+                    fileClass: "ckMaterialFile",
+                    folderClass: "ckMaterialFolder",
+                    postGetCallback: callback,
+                    showLockedAsRed: true,
+                    rootToStrip: undefined
+                };
+                BuildFileTree(treeOpts);
+			}
+
+			function RebuildRootMaterialTree(callback)
+			{
+				$('#FileTree ul').remove();
+				$('#treecontrol-Materials').remove();
+                var treeOpts = {
+                    intoDiv: $("#RootMaterialTree"),
+                    root: "data/materials/template",
+                    ext: "*.bgsm",
+                    treeControlDivName: "Materials",
+                    fileClass: "ckMaterialFile",
+                    folderClass: "ckMaterialFolder",
+                    postGetCallback: PostRootMaterialGetCallback,
+                    showLockedAsRed: false,
+                    rootToStrip: undefined
+                };
+                BuildFileTree(treeOpts);
+			}
+
+			function RebuildTextureTree()
+			{
+				$('#TextureTree ul').remove();
+				$('#treecontrol-Textures').remove();
+                var treeOpts = {
+                    intoDiv: $("#TextureTree"),
+                    root: "data/textures",
+                    ext: "*.dds",
+                    treeControlDivName: "Textures",
+                    fileClass: "ckTextureFile",
+                    folderClass: "ckTextureFolder",
+                    postGetCallback: PostTextureGetCallback,
+                    showLockedAsRed: false,
+                    rootToStrip: "data/textures/"
+                };
+				BuildFileTree(treeOpts);
+			}
+			
+			function SyncMaterials()
+			{
+				$.ajax({url: httpHeader() + 'syncmaterials', 
+					success: function( data, textStatus, jqHXR ) { 
+						RebuildMaterialTree( ); 
+						RebuildRootMaterialTree( ); 
+						$.jGrowl("Success!"); }, 
+					error: function(data, textStatus, jqXHR) { 
+						JGrowlError("Error synching materials -- check your perforce setup!!"); 
+					} 
+				});
+			}
+			
+			$(document).ready(function()  {
+
+                SetEditorPort();
+                AddControlButton('restoreDefaultsDiv', 'restoreDefaults', 'Defaults', 'Set defaults into current material');
+                AddControlButton('checkoutAddDiv', 'checkoutAdd', 'Check Out/Add', 'Check out current material (or add to perforce if new).');
+                AddControlButton('revertDiv', 'revert', 'Revert', 'Revert current material in perforce');
+                AddControlButton('saveMaterialDiv', 'saveMaterial', 'Save', 'Save material onto disk');
+                AddControlButton('saveMaterialAsDiv', 'saveMaterialAs', 'Save As', 'Save material into a specified location on disk');
+                AddControlButton('syncMaterialsDiv', 'syncMaterials', 'Sync', 'Synch material list with the list on disk');
+                AddControlButton('refreshFileList', 'refreshFiles', 'Refresh Files', 'Refresh the list of files (requires page refresh');
+                // Rebuild buttons to be a fixed width
+                $('.ckControlButtonHolder');
+                $('.ckControlButton').button();
+
+                // Bind button behaviors
+                $('#restoreDefaults').click(function(e){ SetDefaults(); });
+                $('#checkoutAdd').click(function(e) { CheckoutAdd(); });
+                $('#revert').click(function(e) { Revert(); });
+                $('#saveMaterial').click(function(e) { SaveMaterial(); });
+                $('#saveMaterialAs').click(function(e) { SaveMaterialAs(); });
+                $('#syncMaterials').click(function(e) { SyncMaterials(); });
+                $('#refreshFiles').click(function(){ location.reload(); });
+
+                // Build material file tree
+                RebuildMaterialTree();
+                RebuildRootMaterialTree();
+                RebuildTextureTree();
+                // Make my dialog
+                $( "#dialog-confirm" ).dialog({
+                    resizable: false,
+                    //height:140,
+                    modal: true,
+                    autoOpen: false,
+                    buttons: {
+                      "Ignore Changes and Switch": function() {
+                            SwitchToNewlySelectedMaterial();
+                            $( this ).dialog( "close" );
+                      },
+                      Cancel: function() {
+                            DoNotSwitchToNewlySelectedMaterial();
+                            $( this ).dialog( "close" );
+                      }
+                    }
+                });
+
+                $("#FileTreeModal").dialog({
+                    autoOpen: false,
+                    width: 500,
+                    height: 600,
+                    modal: true
+                });
+
+                $("#TextureTreeModal").dialog({
+                    autoOpen: false,
+                    width: 500,
+                    height:600,
+                    modal: true
+                });
+
+                $("#RootMaterialTreeModal").dialog({
+                    autoOpen: false,
+                    width: 500,
+                    height:600,
+                    modal: true
+                });
+
+                BuildMaterialFromMetaData(httpHeader(), $('#MainDiv'), SetDefaults, null, null );
+			});
+		</script>
+	</head>
+	<body class="notranslate">
+        <div id="MainContainer">
+
+            <fieldset id="ActiveMaterialContainer" class="ck-groupify ui-widget ui-widget-content ui-corner-all">
+                <legend>Material</legend>
+                <input type="text" id="ActiveMaterial" name="ActiveMaterial" placeholder="Click to select material..." />
+                <script type="text/javascript">
+                    $("#ActiveMaterial").click(function(){
+                        var modalDiv = "#FileTreeModal";
+                        $(modalDiv).dialog("open");
+                    })
+
+                </script>
+            </fieldset>
+            <div id="ControlButtons" class="ck-toplevel ck-groupify" class="requiresMaterial cover"></div>
+            <div id="MainDiv" class="ck-toplevel" class="requiresMaterial cover"></div>
+        </div>
+
+        <div id="dialog-confirm" title="Sure you wanna do that?">
+            <p><span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>You have made changes to the currently edited material but haven't saved them. Are you sure you want to switch away?</p>
+        </div>
+        <div id="FileTreeModal">
+            <div id="FileTreeFilter"><label for="editbox-FileTreeFilter" class="ui-widget">Filter</label>
+                <input type="text" id="editbox-FileTreeFilter" class="ui-corner-all ui-widget"/>
+                <script type="text/javascript">
+                $("#editbox-FileTreeFilter").on("keyup", function(){
+                    var that = $(this);
+                    var delay = 200;
+
+                    clearTimeout(that.data("timer"));
+                    that.data("timer", setTimeout(function(){
+                        that.removeData("timer");
+                        ApplyMaterialsFilter(that.val());
+                    }, delay));
+                });
+                </script>
+            </div>
+            <div id="FileTree" class="ck-toplevel"></div>
+        </div>
+        <div id="RootMaterialTreeModal">
+            <div id="RootMaterialTreeFilter"><label for="editbox-RootMaterialTreeFilter" class="ui-widget">Filter</label>
+                <input type="text" id="editbox-RootMaterialTreeFilter" class="ui-corner-all ui-widget"/>
+                <script type="text/javascript">
+                $("#editbox-RootMaterialTreeFilter").on("keyup", function(){
+                    var that = $(this);
+                    var delay = 200;
+
+                    clearTimeout(that.data("timer"));
+                    that.data("timer", setTimeout(function(){
+                        that.removeData("timer");
+                        ApplyMaterialsFilter(that.val());
+                    }, delay));
+                });
+                </script>
+            </div>
+            <div id="RootMaterialTree" class="ck-toplevel"></div>
+        </div>
+        <div id="TextureTreeModal">
+            <div id="TextureTreeFilter"><label for="editbox-TextureTreeFilter" class="ui-widget">Filter</label>
+                <input type="text" id="editbox-TextureTreeFilter" class="ui-corner-all ui-widget"/>
+                <script type="text/javascript">
+                    $("#editbox-TextureTreeFilter").on("keyup", function(){
+                        var that = $(this);
+                        var delay = 200;
+
+                        clearTimeout(that.data("timer"));
+                        that.data("timer", setTimeout(function(){
+                            that.removeData("timer");
+                            ApplyTexturesFilter(that.val());
+                        }, delay));
+                    });
+                </script>
+            </div>
+            <div id="TextureTree" class="ck-toplevel"></div>
+        </div>
+    <style type="text/css">
+
+
+        .jstree-open a>.jstree-icon {
+            background-image: url("images/fugue/icons/folder-horizontal-open.png");
+            background-position: 0 0;
+        }
+        .jstree-closed a>.jstree-icon {
+            background-image: url("images/fugue/icons/folder-horizontal.png");
+            background-position: 0 0;
+        }
+
+        .jstree-leaf a>.jstree-icon {
+            background-image: url("images/fugue/icons/document.png");
+            background-position: 0 0;
+        }
+
+        .jstree-default a.jstree-search {
+            color: inherit;
+            font-style: normal;
+        }
+
+        .jstree-default .jstree-clicked {
+            background: transparent;
+            border: 1px solid transparent;
+        }
+
+        .jstree a {
+            color: inherit;
+        }
+
+        .jstree a.ckMaterialFile.locked {
+            color: red;
+        }
+
+        .jstree a.ckMaterialFile.ckMaterialFileCheckedOut {
+            color: inherit;
+        }
+
+        .jstree a.ckTextureFileSelected {
+            color: yellowgreen;
+        }
+
+        .jstree-default .jstree-hovered {
+            background: transparent;
+            border: 1px solid transparent;
+        }
+
+        .jstree-default.jstree-focused {
+            background: transparent;
+        }
+
+        .ckuintEdit,
+        .ckfloatEdit {
+            width: 4em;
+        }
+
+    </style>
+	</body>
+</html>
