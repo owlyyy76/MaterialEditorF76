@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F76 Material Engine v6.0-OS</title>
+    
+    <!-- Systemic Decoupling: External CDNs for Zero-Build Execution -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-neutral-950 text-neutral-200">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef } = React;
+
+        // --- INLINE VECTOR OPTICS (Replacing external lucide-react imports) ---
+        const Cpu = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="16" height="16" x="4" y="4" rx="2" ry="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>;
+        const UploadCloud = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>;
+        const Save = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
+        const AlertTriangle = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>;
+        const FileCode = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>;
+        const Settings2 = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>;
+        const Layers = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>;
+        const ImageIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>;
+
+        // --- CORE HEURISTICS ---
+        const parseBGSM = (buffer) => {
+            const view = new DataView(buffer);
+            if (buffer.byteLength < 8) throw new Error("Artifact corrupted: Buffer too small.");
+
+            const magic = String.fromCharCode(
+                view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3)
+            );
+
+            if (magic !== 'BGSM' && magic !== 'BGEM') {
+                throw new Error(`Invalid Magic Header: Expected BGSM/BGEM, got ${magic}`);
+            }
+
+            const version = view.getUint32(4, true);
+            
+            const decoder = new TextDecoder('ascii');
+            const text = decoder.decode(buffer);
+            
+            const pathRegex = /([a-zA-Z0-9_\\\-\.\/]+(?:textures|materials)[a-zA-Z0-9_\\\-\.\/]+\.(?:dds|bgsm|bgem))/gi;
+            
+            const textures = [];
+            let match;
+            while ((match = pathRegex.exec(text)) !== null) {
+                if (!textures.includes(match[1])) {
+                    textures.push(match[1]);
+                }
+            }
+
+            return { magic, version, textures, rawBuffer: buffer };
+        };
+
+        function App() {
+            const [fileData, setFileData] = useState(null);
+            const [parsedData, setParsedData] = useState(null);
+            const [isDragging, setIsDragging] = useState(false);
+            const [error, setError] = useState(null);
+            const [activeTextures, setActiveTextures] = useState([]);
+
+            const fileInputRef = useRef(null);
+
+            const handleDragOver = (e) => {
+                e.preventDefault();
+                setIsDragging(true);
+            };
+
+            const handleDragLeave = () => {
+                setIsDragging(false);
+            };
+
+            const processFile = async (file) => {
+                if (!file) return;
+                setError(null);
+                
+                try {
+                    const buffer = await file.arrayBuffer();
+                    const data = parseBGSM(buffer);
+                    
+                    setFileData({
+                        name: file.name,
+                        size: (file.size / 1024).toFixed(2) + ' KB',
+                        lastModified: new Date(file.lastModified).toLocaleDateString()
+                    });
+                    
+                    setParsedData(data);
+                    setActiveTextures(data.textures);
+                } catch (err) {
+                    console.error(err);
+                    setError(err.message);
+                    setParsedData(null);
+                    setFileData(null);
+                }
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                const file = e.dataTransfer.files[0];
+                processFile(file);
+            };
+
+            const handleFileSelect = (e) => {
+                const file = e.target.files[0];
+                processFile(file);
+            };
+
+            const handleTextureChange = (index, newValue) => {
+                const newTextures = [...activeTextures];
+                newTextures[index] = newValue;
+                setActiveTextures(newTextures);
+            };
+
+            const handleExport = () => {
+                if (!parsedData) return;
+                const blob = new Blob([parsedData.rawBuffer], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `MODIFIED_${fileData.name}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            return (
+                <div className="min-h-screen bg-neutral-950 text-neutral-200 font-sans selection:bg-blue-500/30">
+                    <nav className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-md sticky top-0 z-50">
+                        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.5)]">
+                                    <Cpu className="w-5 h-5 text-white" />
+                                </div>
+                                <h1 className="font-bold text-xl tracking-tight bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">
+                                    F76 Material Engine <span className="text-xs font-mono text-blue-400 ml-2 border border-blue-900/50 bg-blue-900/20 px-2 py-0.5 rounded-full">v6.0-OS</span>
+                                </h1>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm font-medium transition-colors border border-neutral-700 flex items-center gap-2">
+                                    <UploadCloud className="w-4 h-4" />
+                                    Ingest Module
+                                </button>
+                                <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept=".bgsm,.bgem" className="hidden" />
+                                <button onClick={handleExport} disabled={!parsedData} className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${parsedData ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-neutral-800 text-neutral-500 cursor-not-allowed opacity-50'}`}>
+                                    <Save className="w-4 h-4" />
+                                    Compile & Export
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="max-w-7xl mx-auto px-4 py-8">
+                        {error && (
+                            <div className="mb-6 p-4 rounded-lg bg-red-900/20 border border-red-900/50 flex items-start gap-3">
+                                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <h3 className="text-red-400 font-medium">Telemetry Failure</h3>
+                                    <p className="text-red-300/80 text-sm mt-1">{error}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {!parsedData && !error && (
+                            <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`w-full h-96 rounded-xl border-2 border-dashed flex flex-col items-center justify-center transition-all duration-200 ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-neutral-800 bg-neutral-900/50 hover:bg-neutral-800/50 hover:border-neutral-700'}`}>
+                                <div className="p-4 rounded-full bg-neutral-800 mb-4 shadow-xl">
+                                    <UploadCloud className={`w-8 h-8 ${isDragging ? 'text-blue-400' : 'text-neutral-400'}`} />
+                                </div>
+                                <h2 className="text-xl font-semibold mb-2">Initialize Payload Sequence</h2>
+                                <p className="text-neutral-500 text-sm max-w-sm text-center">Drag and drop a Fallout 76 <span className="font-mono text-neutral-300">.bgsm</span> or <span className="font-mono text-neutral-300">.bgem</span> material artifact here, or click the Ingest button above.</p>
+                            </div>
+                        )}
+
+                        {parsedData && (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="space-y-6">
+                                    <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-xl">
+                                        <div className="border-b border-neutral-800 bg-neutral-900/80 px-4 py-3 flex items-center gap-2">
+                                            <FileCode className="w-4 h-4 text-blue-400" />
+                                            <h3 className="font-medium text-sm text-neutral-200">Artifact Diagnostics</h3>
+                                        </div>
+                                        <div className="p-4 space-y-4">
+                                            <div>
+                                                <label className="text-xs text-neutral-500 font-medium uppercase tracking-wider">File Designation</label>
+                                                <div className="mt-1 font-mono text-sm text-neutral-300 truncate" title={fileData.name}>{fileData.name}</div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-xs text-neutral-500 font-medium uppercase tracking-wider">Size</label>
+                                                    <div className="mt-1 font-mono text-sm text-neutral-300">{fileData.size}</div>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-neutral-500 font-medium uppercase tracking-wider">Magic Hash</label>
+                                                    <div className="mt-1 font-mono text-sm text-blue-400 font-bold">{parsedData.magic}</div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-neutral-500 font-medium uppercase tracking-wider">Schema Version</label>
+                                                <div className="mt-1 font-mono text-sm text-neutral-300">v{parsedData.version} <span className="text-neutral-600 ml-1">(F76 Standard)</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-xl">
+                                        <div className="border-b border-neutral-800 bg-neutral-900/80 px-4 py-3 flex items-center gap-2">
+                                            <Settings2 className="w-4 h-4 text-blue-400" />
+                                            <h3 className="font-medium text-sm text-neutral-200">Rendering Flags</h3>
+                                        </div>
+                                        <div className="p-4 grid grid-cols-2 gap-3">
+                                            {['Alpha Blend', 'Alpha Test', 'Z-Buffer Write', 'Double Sided', 'Environment Map', 'Two Sided'].map((flag, i) => (
+                                                <label key={i} className="flex items-center gap-2 cursor-pointer group">
+                                                    <input type="checkbox" defaultChecked={i % 2 === 0} className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-neutral-900 cursor-pointer" />
+                                                    <span className="text-sm text-neutral-400 group-hover:text-neutral-200 transition-colors">{flag}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="lg:col-span-2 space-y-6">
+                                    <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-xl">
+                                        <div className="border-b border-neutral-800 bg-neutral-900/80 px-4 py-3 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Layers className="w-4 h-4 text-blue-400" />
+                                                <h3 className="font-medium text-sm text-neutral-200">Texture Map Allocations</h3>
+                                            </div>
+                                            <span className="text-xs font-mono bg-neutral-800 px-2 py-1 rounded text-neutral-400 border border-neutral-700">{activeTextures.length} MAPS FOUND</span>
+                                        </div>
+                                        
+                                        <div className="p-6 space-y-5">
+                                            {activeTextures.length === 0 ? (
+                                                <div className="text-center py-8 text-neutral-500 flex flex-col items-center">
+                                                    <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
+                                                    <p>No valid texture strings extracted from buffer.</p>
+                                                </div>
+                                            ) : (
+                                                activeTextures.map((tex, index) => {
+                                                    let label = "Texture Data";
+                                                    if (tex.toLowerCase().includes('_d.') || tex.toLowerCase().includes('_color')) label = "Diffuse / Color Map";
+                                                    else if (tex.toLowerCase().includes('_n.') || tex.toLowerCase().includes('_normal')) label = "Normal Map";
+                                                    else if (tex.toLowerCase().includes('_s.') || tex.toLowerCase().includes('_spec')) label = "Specular Map";
+                                                    else if (tex.toLowerCase().includes('_g.') || tex.toLowerCase().includes('_glow')) label = "Glow / Emissive Map";
+                                                    
+                                                    return (
+                                                        <div key={index} className="group">
+                                                            <label className="flex justify-between items-center text-xs font-medium text-neutral-400 uppercase tracking-wider mb-1.5">
+                                                                {label}
+                                                                <span className="text-neutral-600 font-mono text-[10px]">Slot {index}</span>
+                                                            </label>
+                                                            <div className="relative">
+                                                                <input type="text" value={tex} onChange={(e) => handleTextureChange(index, e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-sm font-mono text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder-neutral-700" placeholder="textures\..." />
+                                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-600 pointer-events-none select-none">DDS</div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
