@@ -3,204 +3,307 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>f76.world | Material Engine</title>
+    <title>Vault-Tec Material Workshop | f76.world</title>
     
-    <!-- Systemic Decoupling: Resilient CDNs -->
+    <!-- Systemic Decoupling: Modern Resilient CDNs (July 2026 Baseline) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        vault: {
+                            blue: '#003b7a',
+                            blueDark: '#002147',
+                            blueLight: '#0055b3',
+                            yellow: '#facc15',
+                            yellowDim: '#ca8a04',
+                            yellowDark: '#854d0e',
+                            bg: '#f8fafc',
+                            panel: '#ffffff'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Inter"', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['"Courier New"', 'Courier', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-neutral-950 text-neutral-200 overflow-y-scroll">
+<body class="bg-slate-100 text-slate-800 overflow-y-scroll vault-scrollbar selection:bg-vault-yellow/40">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useRef, useEffect, useCallback } = React;
+        const { useState, useRef, useCallback, useMemo } = React;
 
-        // --- INLINE VECTOR OPTICS ---
-        const Cpu = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="16" height="16" x="4" y="4" rx="2" ry="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>;
-        const UploadCloud = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>;
+        // --- INLINE ICONS ---
+        const FolderOpen = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>;
         const Save = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
+        const Copy = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>;
         const AlertTriangle = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>;
-        const FileCode = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>;
+        const Info = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>;
         const Settings2 = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>;
-        const Layers = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>;
+        const Image = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>;
         const Undo = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>;
         const Redo = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>;
-        const ShieldCheck = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>;
         const Code = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>;
-        const HelpCircle = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>;
-        const Terminal = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>;
+        const List = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
+        const Wrench = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>;
 
-        // --- MAIN APPLICATION ---
+        // --- CORE PARSER MODULE ---
+        const MaterialParser = {
+            analyzeFile: (buffer) => {
+                const view = new DataView(buffer);
+                const logs = [];
+                let isFallout76Valid = true;
+
+                if (buffer.byteLength < 8) {
+                    return { valid: false, logs: [{ type: 'error', msg: "File is too small to be a valid material." }] };
+                }
+
+                const magic = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+                if (magic === 'BGSM' || magic === 'BGEM') {
+                    logs.push({ type: 'success', msg: `Great! Found a valid ${magic} file.` });
+                } else {
+                    logs.push({ type: 'error', msg: `Hold on! Expected a BGSM or BGEM file, but found ${magic}.` });
+                    isFallout76Valid = false;
+                }
+
+                const version = view.getUint32(4, true);
+                if (version === 20 || version === 2) {
+                    logs.push({ type: 'info', msg: `Format version v${version} recognized.` });
+                } else {
+                    logs.push({ type: 'warn', msg: `This format version (v${version}) is unusual. It might still work, though!` });
+                }
+
+                return { valid: isFallout76Valid, logs, magic, version };
+            }
+        };
+
+        const rebuildFile = (originalBuffer, baseMappings, currentStrings) => {
+            const chunks = [];
+            let cursor = 0;
+            const origUint8 = new Uint8Array(originalBuffer);
+            const view = new DataView(originalBuffer);
+
+            const operations = baseMappings.map((map, i) => ({
+                ...map,
+                current: currentStrings[i]
+            })).sort((a, b) => a.offset - b.offset);
+
+            for (const op of operations) {
+                const isNullTerminated = origUint8[op.offset + op.original.length] === 0;
+                const originalTotalLen = op.original.length + (isNullTerminated ? 1 : 0);
+
+                let hasPrefix = false;
+                let origPrefixVal = 0;
+                if (op.offset >= 4) {
+                    origPrefixVal = view.getUint32(op.offset - 4, true);
+                    if (origPrefixVal === op.original.length || origPrefixVal === op.original.length + 1) {
+                        hasPrefix = true;
+                    }
+                }
+
+                const spliceStart = hasPrefix ? op.offset - 4 : op.offset;
+                chunks.push(origUint8.slice(cursor, spliceStart));
+
+                if (hasPrefix) {
+                    const prefixBuf = new ArrayBuffer(4);
+                    const prefixValToWrite = (origPrefixVal > op.original.length) ? op.current.length + 1 : op.current.length;
+                    new DataView(prefixBuf).setUint32(0, prefixValToWrite, true);
+                    chunks.push(new Uint8Array(prefixBuf));
+                }
+
+                const strBuf = new Uint8Array(op.current.length);
+                for(let i=0; i<op.current.length; i++) {
+                    strBuf[i] = op.current.charCodeAt(i);
+                }
+                chunks.push(strBuf);
+
+                if (isNullTerminated) {
+                    chunks.push(new Uint8Array([0]));
+                }
+
+                cursor = op.offset + originalTotalLen;
+            }
+
+            chunks.push(origUint8.slice(cursor));
+
+            let totalLen = chunks.reduce((acc, c) => acc + c.byteLength, 0);
+            const finalBuf = new Uint8Array(totalLen);
+            let currentOffset = 0;
+            for (const c of chunks) {
+                finalBuf.set(c, currentOffset);
+                currentOffset += c.byteLength;
+            }
+
+            return finalBuf.buffer;
+        };
+
+        // --- MAIN APP COMPONENT ---
         function App() {
-            // File & Core State
             const [fileData, setFileData] = useState(null);
             const [parsedData, setParsedData] = useState(null);
             const [isDragging, setIsDragging] = useState(false);
             const [error, setError] = useState(null);
             
-            // UX State
             const [loadingProgress, setLoadingProgress] = useState(0);
             const [isProcessing, setIsProcessing] = useState(false);
             
-            // Undo/Redo Matrix State
             const [history, setHistory] = useState([]);
             const [historyPos, setHistoryPos] = useState(-1);
+            const [activeTab, setActiveTab] = useState('visual'); 
+            const [activityLogs, setActivityLogs] = useState([]);
 
-            // Active Tab State
-            const [activeTab, setActiveTab] = useState('visual'); // 'visual', 'raw', 'verifier'
-
-            // Verbose Logger
-            const [debugLogs, setDebugLogs] = useState([]);
+            // Material Settings (Simulated)
+            const [materialFlags, setMaterialFlags] = useState({
+                bAlphaBlend: false,
+                bAlphaTest: false,
+                bZBufferWrite: true,
+                bTwoSided: false,
+                bEnvironmentMapping: true,
+                bScreenSpaceReflections: false
+            });
             
             const fileInputRef = useRef(null);
 
             const pushLog = useCallback((level, message) => {
-                const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
-                const newLog = { timestamp, level, message };
-                setDebugLogs(prev => [...prev, newLog]);
-                
-                // Verbose Console Mirroring
-                const prefix = `[${timestamp}] [${level}]`;
-                if (level === 'ERROR') console.error(`${prefix} ${message}`);
-                else if (level === 'WARN') console.warn(`${prefix} ${message}`);
-                else if (level === 'DEBUG') console.debug(`${prefix} ${message}`);
-                else console.log(`${prefix} ${message}`);
+                const timestamp = new Date().toLocaleTimeString([], { hour12: false });
+                setActivityLogs(prev => [...prev, { timestamp, level, message }]);
             }, []);
-
-            // Helper to simulate asynchronous heavy lifting for UI feedback
-            const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
             const commitState = (newTextures) => {
                 const newHistory = history.slice(0, historyPos + 1);
                 newHistory.push([...newTextures]);
                 setHistory(newHistory);
                 setHistoryPos(newHistory.length - 1);
-                pushLog('INFO', 'State matrix updated. History buffer appended.');
             };
 
             const undo = () => {
-                if (historyPos > 0) {
-                    setHistoryPos(historyPos - 1);
-                    pushLog('INFO', 'State matrix reverted (Undo).');
-                }
+                if (historyPos > 0) setHistoryPos(historyPos - 1);
             };
 
             const redo = () => {
-                if (historyPos < history.length - 1) {
-                    setHistoryPos(historyPos + 1);
-                    pushLog('INFO', 'State matrix restored (Redo).');
-                }
+                if (historyPos < history.length - 1) setHistoryPos(historyPos + 1);
             };
 
-            const runRobustHeuristics = async (buffer) => {
-                pushLog('INFO', 'Initiating Fallback/Heuristics parsing protocol...');
-                setLoadingProgress(20);
-                await delay(100);
-
-                if (!buffer || buffer.byteLength === 0) {
-                    throw new Error("Critical File Error: Buffer is empty (0 bytes). File may be corrupted or locked by another process.");
-                }
-
-                if (buffer.byteLength < 8) {
-                    throw new Error(`Buffer underflow: Size ${buffer.byteLength} bytes is smaller than standard Bethesda header (8 bytes).`);
-                }
-
-                pushLog('DEBUG', `Buffer instantiated. Byte length: ${buffer.byteLength}`);
-                setLoadingProgress(40);
-                await delay(100);
-
-                const view = new DataView(buffer);
-                const magic = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
-                
-                if (magic !== 'BGSM' && magic !== 'BGEM') {
-                    throw new Error(`Corrupt Magic Header: Expected BGSM/BGEM, identified '${magic}'. This is not a standard material file.`);
-                }
-                pushLog('SUCCESS', `Validated Magic Header: ${magic}`);
-
-                const version = view.getUint32(4, true);
-                pushLog('INFO', `Detected Schema Version: v${version}`);
-                setLoadingProgress(60);
-                await delay(100);
-
-                pushLog('DEBUG', 'Executing topological string extraction via RegExp...');
-                const decoder = new TextDecoder('ascii');
-                const text = decoder.decode(buffer);
-                
-                // Advanced regex to capture paths safely
-                const pathRegex = /([a-zA-Z0-9_\\\-\.\/]+(?:textures|materials)[a-zA-Z0-9_\\\-\.\/]+\.(?:dds|bgsm|bgem))/gi;
-                
-                const textures = [];
-                let match;
-                while ((match = pathRegex.exec(text)) !== null) {
-                    if (!textures.includes(match[1])) {
-                        textures.push(match[1]);
-                        pushLog('DEBUG', `Mapped Texture Slot: ${match[1]}`);
-                    }
-                }
-
-                if (textures.length === 0) {
-                    pushLog('WARN', 'No parsable texture paths detected in buffer.');
-                } else {
-                    pushLog('SUCCESS', `Extraction complete. Captured ${textures.length} valid mapped nodes.`);
-                }
-
-                setLoadingProgress(100);
-                await delay(200); // Allow bar to finish animating
-
-                return { magic, version, textures, rawBuffer: buffer };
+            const handleFlagToggle = (key) => {
+                setMaterialFlags(prev => {
+                    const newFlags = { ...prev, [key]: !prev[key] };
+                    pushLog('info', `Changed setting: ${key} is now ${newFlags[key] ? 'On' : 'Off'}`);
+                    return newFlags;
+                });
             };
+
+            // Friendly Modding Tips
+            const moddingTips = useMemo(() => {
+                const alerts = [];
+                const f = materialFlags;
+
+                if (f.bAlphaBlend && f.bAlphaTest) {
+                    alerts.push({ level: 'error', msg: 'Having both Alpha Blend and Alpha Test enabled usually causes flickering or glitchy transparency. Pick one!' });
+                }
+                if (f.bScreenSpaceReflections && !f.bEnvironmentMapping) {
+                    alerts.push({ level: 'warn', msg: 'Tip: If you use Screen Space Reflections, enable Environment Mapping too so the object isn\'t completely black in shadows.' });
+                }
+                if (f.bTwoSided && f.bZBufferWrite) {
+                    alerts.push({ level: 'info', msg: 'Double-sided objects might look strange if they overlap themselves. Just something to watch out for in-game.' });
+                }
+                if (!f.bZBufferWrite && !f.bAlphaBlend && !f.bAlphaTest) {
+                    alerts.push({ level: 'warn', msg: 'Z-Buffer Write is off for a solid object. It might render behind walls or look like a flat sticker (decal mode).' });
+                }
+
+                if (alerts.length === 0) {
+                    alerts.push({ level: 'success', msg: 'Your current settings look completely fine for Fallout 76!' });
+                }
+                return alerts;
+            }, [materialFlags]);
 
             const processFile = async (file) => {
                 if (!file) return;
                 
                 setError(null);
                 setParsedData(null);
-                setDebugLogs([]); // Clear previous logs
+                setActivityLogs([]);
                 setIsProcessing(true);
                 setLoadingProgress(0);
                 
-                pushLog('INFO', `Ingesting artifact: ${file.name} (${file.size} bytes)`);
+                pushLog('info', `Opening ${file.name}...`);
 
                 try {
-                    setLoadingProgress(10);
+                    setLoadingProgress(20);
                     const buffer = await file.arrayBuffer();
+                    const diagnostics = MaterialParser.analyzeFile(buffer);
                     
-                    const data = await runRobustHeuristics(buffer);
+                    diagnostics.logs.forEach(l => pushLog(l.type, l.msg));
                     
+                    if (!diagnostics.valid) {
+                        throw new Error(diagnostics.logs.find(l => l.type === 'error')?.msg || "Couldn't read file properly.");
+                    }
+
+                    setLoadingProgress(50);
+                    
+                    const uint8 = new Uint8Array(buffer);
+                    let binStr = "";
+                    for(let i=0; i<uint8.length; i++) {
+                        binStr += String.fromCharCode(uint8[i]);
+                    }
+                    
+                    const pathRegex = /([a-zA-Z0-9_\\\-\.\/]+\.(?:dds|bgsm|bgem|nif|tx))/gi;
+                    const mappings = [];
+                    const initialStrings = [];
+                    let match;
+                    
+                    while ((match = pathRegex.exec(binStr)) !== null) {
+                        const str = match[1];
+                        const offset = match.index;
+                        
+                        if (!mappings.some(m => m.offset === offset)) {
+                            mappings.push({ original: str, offset: offset });
+                            initialStrings.push(str);
+                        }
+                    }
+
+                    if (mappings.length === 0) {
+                        pushLog('warn', 'Didn\'t find any texture paths in this file. You can still save it, though.');
+                    } else {
+                        pushLog('success', `Found ${mappings.length} texture links!`);
+                    }
+
+                    setLoadingProgress(100);
+
                     setFileData({
                         name: file.name,
                         size: (file.size / 1024).toFixed(2) + ' KB',
                         lastModified: new Date(file.lastModified).toLocaleDateString()
                     });
                     
+                    const data = { magic: diagnostics.magic, version: diagnostics.version, mappings, initialStrings, rawBuffer: buffer };
                     setParsedData(data);
-                    
-                    setHistory([data.textures]);
+                    setHistory([data.initialStrings]);
                     setHistoryPos(0);
-                    pushLog('SUCCESS', 'Artifact initialization and DOM mounting complete.');
                     
+                    setMaterialFlags({
+                        bAlphaBlend: false, bAlphaTest: false, bZBufferWrite: true,
+                        bTwoSided: false, bEnvironmentMapping: true, bScreenSpaceReflections: false
+                    });
+
                 } catch (err) {
-                    pushLog('ERROR', err.message);
+                    pushLog('error', err.message);
                     setError(err.message);
-                    setParsedData(null);
-                    setFileData(null);
                 } finally {
-                    setIsProcessing(false);
-                    setLoadingProgress(0);
+                    setTimeout(() => setIsProcessing(false), 500);
                 }
             };
 
-            const handleDragOver = (e) => {
-                e.preventDefault();
-                setIsDragging(true);
-            };
-
-            const handleDragLeave = () => {
-                setIsDragging(false);
-            };
-
+            const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
+            const handleDragLeave = () => { setIsDragging(false); };
             const handleDrop = (e) => {
                 e.preventDefault();
                 setIsDragging(false);
@@ -211,12 +314,8 @@
 
             const handleFileSelect = (e) => {
                 const file = e.target.files[0];
-                if (file) {
-                    processFile(file);
-                }
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
+                if (file) processFile(file);
+                if (fileInputRef.current) fileInputRef.current.value = '';
             };
 
             const handleTextureChange = (index, newValue) => {
@@ -226,336 +325,341 @@
                 commitState(newTextures);
             };
 
-            const handleRawTextChange = (e) => {
-                const lines = e.target.value.split('\n');
-                commitState(lines);
+            const duplicateFile = () => {
+                if (!parsedData || !fileData) return;
+                const newName = window.prompt("Name your new file copy:", `copy_of_${fileData.name}`);
+                if (newName) {
+                    const finalName = newName.endsWith('.bgsm') || newName.endsWith('.bgem') ? newName : `${newName}.${parsedData.magic.toLowerCase()}`;
+                    setFileData(prev => ({ ...prev, name: finalName }));
+                    pushLog('success', `Created duplicate as: ${finalName}`);
+                }
             };
 
             const handleExport = () => {
                 if (!parsedData) return;
                 
-                pushLog('INFO', 'User initiated export sequence.');
-                const confirmSave = window.confirm("SECURITY WARNING:\nHave you created a backup of the original .bgsm file?\nModifying material byte offsets incorrectly can crash the game.\n\nProceed with export?");
-                
-                if (!confirmSave) {
-                    pushLog('WARN', 'Export aborted by user security prompt.');
-                    return;
-                }
+                const hasWarnings = moddingTips.some(p => p.level === 'error' || p.level === 'warn');
+                let promptMsg = "Are you sure you want to save?\nMake sure you have a backup of the original file!";
+                if (hasWarnings) promptMsg += "\n\nNote: You have some warnings in your settings. The material might look glitchy in-game.";
+
+                if (!window.confirm(promptMsg)) return;
 
                 try {
-                    const blob = new Blob([parsedData.rawBuffer], { type: 'application/octet-stream' });
+                    const currentStrings = history[historyPos];
+                    const newBuffer = rebuildFile(parsedData.rawBuffer, parsedData.mappings, currentStrings);
+
+                    const blob = new Blob([newBuffer], { type: 'application/octet-stream' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `f76world_${fileData.name}`;
+                    a.download = fileData.name;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                    pushLog('SUCCESS', `Artifact successfully committed to local disk as f76world_${fileData.name}`);
+                    pushLog('success', `Saved successfully to your downloads!`);
                 } catch (err) {
-                    pushLog('ERROR', `Export failed: ${err.message}`);
-                    alert(`Export Failed: ${err.message}`);
+                    pushLog('error', `Couldn't save: ${err.message}`);
+                    alert(`Failed to save: ${err.message}`);
                 }
             };
 
             const activeTextures = historyPos >= 0 ? history[historyPos] : [];
 
-            const renderingFlags = [
-                { name: 'Alpha Blend', desc: 'Enables partial transparency (glass, water).' },
-                { name: 'Alpha Test', desc: 'Hard cut-off transparency (leaves, fences).' },
-                { name: 'Z-Buffer Write', desc: 'Forces object to occlude geometry behind it.' },
-                { name: 'Double Sided', desc: 'Renders backfaces of the mesh.' },
-                { name: 'Environment Map', desc: 'Enables cubemap reflections.' },
-                { name: 'Two Sided', desc: 'Lighting calculated for both sides.' }
+            const renderingFlagsMeta = [
+                { id: 'bAlphaBlend', name: 'Alpha Blend', desc: 'Smooth transparency (used for glass, water, visors).' },
+                { id: 'bAlphaTest', name: 'Alpha Test', desc: 'Hard cut-out transparency (used for leaves, chainlink fences).' },
+                { id: 'bZBufferWrite', name: 'Z-Buffer Write', desc: 'Tells the game this object is solid and blocks things behind it.' },
+                { id: 'bTwoSided', name: 'Double Sided', desc: 'Renders the inside/back of the model (great for capes or flags).' },
+                { id: 'bEnvironmentMapping', name: 'Environment Map', desc: 'Adds generic fake reflections so metal and wet things look shiny.' },
+                { id: 'bScreenSpaceReflections', name: 'Real-Time Reflections', desc: 'High-quality dynamic puddles and chrome. Heavy on performance!' }
             ];
 
             return (
-                <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-200 font-sans selection:bg-emerald-500/30">
+                <div className="min-h-screen flex flex-col font-sans">
                     
-                    {/* TOP NAVIGATION */}
-                    <nav className="relative border-b border-emerald-900/30 bg-neutral-900/80 backdrop-blur-md sticky top-0 z-50 shadow-md">
-                        {/* Global Progress Bar */}
+                    {/* FRIENDLY TOP NAVIGATION */}
+                    <nav className="bg-vault-blue border-b-4 border-vault-yellow shadow-md sticky top-0 z-50 transition-all">
                         {isProcessing && (
-                            <div className="absolute bottom-0 left-0 h-0.5 bg-emerald-500 transition-all duration-300 ease-out z-50 shadow-[0_0_8px_rgba(16,185,129,0.8)]" style={{ width: `${loadingProgress}%` }}></div>
+                            <div className="absolute top-full left-0 h-1 bg-vault-yellow z-50 transition-all duration-300 ease-out" style={{ width: `${loadingProgress}%` }}></div>
                         )}
                         
-                        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between">
+                            
+                            {/* App Title & Logo */}
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded bg-emerald-600 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-                                    <Cpu className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-inner">
+                                    <Wrench className="w-6 h-6 text-vault-blue" />
                                 </div>
-                                <h1 className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-100 to-emerald-400 bg-clip-text text-transparent">
-                                    f76.world <span className="font-light text-neutral-400 ml-1">| Material Engine</span>
-                                </h1>
+                                <div className="flex flex-col hidden sm:flex">
+                                    <h1 className="font-extrabold text-xl tracking-wide text-white drop-shadow-sm">
+                                        Vault-Tec <span className="text-vault-yellow">Material Workshop</span>
+                                    </h1>
+                                    <span className="text-xs text-vault-yellow/80 font-medium">Fallout 76 Community Tools</span>
+                                </div>
                             </div>
 
-                            {/* Center: Undo/Redo Matrix */}
+                            {/* Center Controls */}
                             {parsedData && (
-                                <div className="flex items-center gap-2 bg-neutral-800 p-1 rounded-lg border border-neutral-700">
-                                    <div className="relative group">
-                                        <button 
-                                            onClick={undo} 
-                                            disabled={historyPos <= 0}
-                                            className={`p-1.5 rounded transition-colors ${historyPos > 0 ? 'hover:bg-neutral-700 text-neutral-200' : 'text-neutral-600 cursor-not-allowed'}`}
-                                        >
-                                            <Undo className="w-4 h-4" />
-                                        </button>
-                                        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-neutral-900 border border-neutral-700 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Undo Change</span>
-                                    </div>
-                                    <div className="w-px h-4 bg-neutral-700"></div>
-                                    <div className="relative group">
-                                        <button 
-                                            onClick={redo} 
-                                            disabled={historyPos >= history.length - 1}
-                                            className={`p-1.5 rounded transition-colors ${historyPos < history.length - 1 ? 'hover:bg-neutral-700 text-neutral-200' : 'text-neutral-600 cursor-not-allowed'}`}
-                                        >
-                                            <Redo className="w-4 h-4" />
-                                        </button>
-                                        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-neutral-900 border border-neutral-700 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Redo Change</span>
-                                    </div>
+                                <div className="flex items-center gap-1 bg-vault-blueDark rounded-lg p-1 shadow-inner">
+                                    <button onClick={undo} disabled={historyPos <= 0} className={`p-2 rounded-md transition-colors ${historyPos > 0 ? 'hover:bg-vault-blueLight text-white' : 'text-white/30 cursor-not-allowed'}`} title="Undo">
+                                        <Undo className="w-5 h-5" />
+                                    </button>
+                                    <div className="w-px h-6 bg-white/20 mx-1"></div>
+                                    <button onClick={redo} disabled={historyPos >= history.length - 1} className={`p-2 rounded-md transition-colors ${historyPos < history.length - 1 ? 'hover:bg-vault-blueLight text-white' : 'text-white/30 cursor-not-allowed'}`} title="Redo">
+                                        <Redo className="w-5 h-5" />
+                                    </button>
                                 </div>
                             )}
 
-                            <div className="flex items-center gap-4">
-                                <div className="relative group">
-                                    <button onClick={() => fileInputRef.current?.click()} disabled={isProcessing} className="px-4 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-sm font-medium transition-colors border border-neutral-700 flex items-center gap-2">
-                                        <UploadCloud className="w-4 h-4" />
-                                        Load .BGSM
+                            {/* Main Actions */}
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                {parsedData && (
+                                    <button onClick={duplicateFile} disabled={isProcessing} className="hidden md:flex px-4 py-2 rounded-md bg-vault-blueDark hover:bg-vault-blueLight text-white text-sm font-semibold transition-colors items-center gap-2 shadow-sm">
+                                        <Copy className="w-4 h-4" /> Duplicate
                                     </button>
-                                    <span className="absolute -bottom-10 right-0 whitespace-nowrap bg-neutral-900 border border-neutral-700 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-50">Local Memory Ingestion</span>
-                                </div>
+                                )}
+                                <button onClick={() => fileInputRef.current?.click()} disabled={isProcessing} className="px-4 py-2 rounded-md bg-white hover:bg-slate-100 text-vault-blue text-sm font-bold transition-colors items-center gap-2 shadow-sm flex">
+                                    <FolderOpen className="w-4 h-4" /> <span className="hidden sm:inline">Open File</span>
+                                </button>
                                 <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept=".bgsm,.bgem" className="hidden" />
                                 
-                                <div className="relative group">
-                                    <button 
-                                        onClick={handleExport} 
-                                        disabled={!parsedData || isProcessing} 
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${parsedData && !isProcessing ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-neutral-800 text-neutral-500 cursor-not-allowed opacity-50 border border-neutral-700'}`}
-                                    >
-                                        <Save className="w-4 h-4" />
-                                        Save Artifact
-                                    </button>
-                                    <span className="absolute -bottom-10 right-0 whitespace-nowrap bg-neutral-900 border border-neutral-700 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-50">Export to Disk (Backup Recommended)</span>
-                                </div>
+                                <button onClick={handleExport} disabled={!parsedData || isProcessing} className={`px-5 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 shadow-sm ${parsedData && !isProcessing ? 'bg-vault-yellow hover:bg-yellow-400 text-vault-blueDark' : 'bg-vault-blueDark text-white/30 cursor-not-allowed'}`}>
+                                    <Save className="w-4 h-4" /> <span className="hidden sm:inline">Save Material</span>
+                                </button>
                             </div>
                         </div>
                     </nav>
 
-                    <main className="flex-grow max-w-7xl w-full mx-auto px-4 py-8 flex flex-col">
+                    <main className="flex-grow max-w-[1600px] w-full mx-auto px-4 py-6 sm:px-6 sm:py-8 flex flex-col z-10">
                         {error && (
-                            <div className="mb-6 p-4 rounded-lg bg-red-900/20 border border-red-900/50 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                            <div className="mb-6 p-4 bg-red-100 border-l-4 border-red-500 rounded-md flex items-start gap-3 shadow-sm">
+                                <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
                                 <div>
-                                    <h3 className="text-red-400 font-medium">Critical Telemetry Failure</h3>
-                                    <p className="text-red-300/80 text-sm mt-1 font-mono break-all">{error}</p>
+                                    <h3 className="text-red-800 font-bold text-base">Oops! Something went wrong.</h3>
+                                    <p className="text-red-600 text-sm mt-1">{error}</p>
                                 </div>
                             </div>
                         )}
 
-                        {/* INITIAL DROPZONE */}
+                        {/* WELCOME DROPZONE */}
                         {!parsedData && !error && (
-                            <div 
-                                onDragOver={handleDragOver} 
-                                onDragLeave={handleDragLeave} 
-                                onDrop={handleDrop} 
-                                className={`flex-grow min-h-[500px] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all duration-300 ${isDragging ? 'border-emerald-500 bg-emerald-500/10 scale-[1.02]' : 'border-neutral-800 bg-neutral-900/30 hover:bg-neutral-800/30 hover:border-neutral-700'}`}
-                            >
-                                <div className={`p-5 rounded-full bg-neutral-900 border mb-6 shadow-2xl transition-colors duration-300 ${isDragging ? 'border-emerald-500/50' : 'border-neutral-800'}`}>
-                                    <UploadCloud className={`w-12 h-12 transition-colors duration-300 ${isDragging ? 'text-emerald-400' : 'text-neutral-500'}`} />
+                            <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`flex-grow min-h-[60vh] w-full rounded-2xl border-4 border-dashed flex flex-col items-center justify-center transition-all duration-200 cursor-pointer ${isDragging ? 'border-vault-blue bg-blue-50 scale-[1.01]' : 'border-slate-300 bg-white hover:border-vault-blue hover:bg-slate-50'}`} onClick={() => fileInputRef.current?.click()}>
+                                <div className={`p-6 rounded-full mb-6 transition-colors duration-200 ${isDragging ? 'bg-vault-blue text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                    <FolderOpen className="w-16 h-16" />
                                 </div>
-                                <h2 className="text-2xl font-bold mb-3 tracking-tight text-neutral-300">Awaiting Material Payload</h2>
-                                <p className="text-neutral-500 max-w-md text-center leading-relaxed">
-                                    Drag and drop a Fallout 76 <span className="font-mono text-emerald-400 bg-emerald-900/20 px-1 rounded">.bgsm</span> or <span className="font-mono text-emerald-400 bg-emerald-900/20 px-1 rounded">.bgem</span> file here to begin safe-mode editing.
+                                <h2 className="text-2xl sm:text-3xl font-extrabold mb-3 text-vault-blueDark text-center">Ready for a Material File</h2>
+                                <p className="text-slate-500 max-w-md text-center text-base sm:text-lg">
+                                    Drag and drop your <strong className="text-vault-blue">.bgsm</strong> or <strong className="text-vault-blue">.bgem</strong> file here, or click to browse your PC.
                                 </p>
                             </div>
                         )}
 
-                        {/* EDITOR INTERFACE */}
+                        {/* MAIN EDITOR AREA */}
                         {parsedData && (
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex-grow flex flex-col">
-                                
-                                {/* TAB SELECTOR */}
-                                <div className="flex gap-2 mb-6 border-b border-neutral-800 pb-px">
-                                    <button onClick={() => setActiveTab('visual')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'visual' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}>
-                                        <Layers className="w-4 h-4" /> Visual Editor
-                                    </button>
-                                    <button onClick={() => setActiveTab('raw')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'raw' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}>
-                                        <Code className="w-4 h-4" /> Raw String Data
-                                    </button>
-                                    <button onClick={() => setActiveTab('verifier')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'verifier' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}>
-                                        <Terminal className="w-4 h-4" /> Verifier & Logs
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+                            <div className="flex-grow flex flex-col">
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
                                     
-                                    {/* LEFT COLUMN: DIAGNOSTICS & FLAGS */}
-                                    <div className="space-y-6">
-                                        <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-lg">
-                                            <div className="border-b border-neutral-800 bg-neutral-900 px-4 py-3 flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <FileCode className="w-4 h-4 text-emerald-500" />
-                                                    <h3 className="font-medium text-sm text-neutral-200">Active Artifact</h3>
-                                                </div>
+                                    {/* LEFT COLUMN: FILE INFO & SETTINGS */}
+                                    <div className="col-span-1 lg:col-span-4 xl:col-span-3 space-y-6 flex flex-col">
+                                        
+                                        {/* File Info Card */}
+                                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                            <div className="bg-slate-50 px-5 py-4 border-b border-slate-200 flex items-center gap-2">
+                                                <Info className="w-5 h-5 text-vault-blue" />
+                                                <h3 className="font-bold text-sm text-slate-800">File Information</h3>
                                             </div>
-                                            <div className="p-4 space-y-4">
+                                            <div className="p-5 space-y-4">
                                                 <div>
-                                                    <label className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">File Designation</label>
-                                                    <div className="mt-1 font-mono text-sm text-neutral-300 truncate" title={fileData?.name}>{fileData?.name}</div>
+                                                    <label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">File Name</label>
+                                                    <div className="mt-1 text-sm text-slate-800 font-medium bg-slate-100 px-3 py-2 rounded-md truncate border border-slate-200">{fileData?.name}</div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Size</label>
-                                                        <div className="mt-1 font-mono text-sm text-neutral-300">{fileData?.size}</div>
+                                                        <label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Size</label>
+                                                        <div className="mt-1 text-sm text-slate-800 font-medium bg-slate-100 px-3 py-2 rounded-md border border-slate-200">{fileData?.size}</div>
                                                     </div>
                                                     <div>
-                                                        <label className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Schema</label>
-                                                        <div className="mt-1 font-mono text-sm text-neutral-300">v{parsedData.version}</div>
+                                                        <label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Type</label>
+                                                        <div className="mt-1 text-sm text-slate-800 font-medium bg-slate-100 px-3 py-2 rounded-md border border-slate-200 font-mono">{parsedData.magic}</div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-lg">
-                                            <div className="border-b border-neutral-800 bg-neutral-900 px-4 py-3 flex items-center gap-2">
-                                                <Settings2 className="w-4 h-4 text-emerald-500" />
-                                                <h3 className="font-medium text-sm text-neutral-200">Rendering Flags</h3>
+                                        {/* Material Settings Card */}
+                                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex-grow flex flex-col overflow-hidden">
+                                            <div className="bg-slate-50 px-5 py-4 border-b border-slate-200 flex items-center gap-2">
+                                                <Settings2 className="w-5 h-5 text-vault-blue" />
+                                                <h3 className="font-bold text-sm text-slate-800">Material Settings</h3>
                                             </div>
-                                            <div className="p-4 flex flex-col gap-4">
-                                                {renderingFlags.map((flag, i) => (
-                                                    <div key={i} className="flex items-start gap-3 group/flag">
-                                                        <input type="checkbox" defaultChecked={i % 2 === 0} className="mt-1 w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-neutral-900 cursor-pointer" />
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-sm font-medium text-neutral-300 group-hover/flag:text-white transition-colors">{flag.name}</span>
-                                                                <HelpCircle className="w-3 h-3 text-neutral-600 opacity-0 group-hover/flag:opacity-100 transition-opacity" />
-                                                            </div>
-                                                            <p className="text-xs text-neutral-500 mt-0.5">{flag.desc}</p>
+                                            <div className="p-5 flex flex-col gap-5 overflow-y-auto max-h-[350px] lg:max-h-full">
+                                                {renderingFlagsMeta.map((flag) => (
+                                                    <label key={flag.id} className="flex items-start gap-4 cursor-pointer group">
+                                                        <div className="relative flex items-center justify-center mt-0.5">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={materialFlags[flag.id]}
+                                                                onChange={() => handleFlagToggle(flag.id)}
+                                                                className="peer w-5 h-5 rounded border-2 border-slate-300 text-vault-blue focus:ring-vault-blue cursor-pointer transition-all checked:bg-vault-blue checked:border-vault-blue" 
+                                                            />
                                                         </div>
-                                                    </div>
+                                                        <div>
+                                                            <span className="text-sm font-bold text-slate-800 group-hover:text-vault-blue transition-colors block">{flag.name}</span>
+                                                            <p className="text-xs text-slate-500 mt-0.5 leading-snug">{flag.desc}</p>
+                                                        </div>
+                                                    </label>
                                                 ))}
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    {/* RIGHT COLUMN: DYNAMIC TABS */}
-                                    <div className="lg:col-span-2 flex flex-col">
-                                        
-                                        {/* TAB 1: VISUAL EDITOR */}
-                                        {activeTab === 'visual' && (
-                                            <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-lg animate-in fade-in flex-grow">
-                                                <div className="border-b border-neutral-800 bg-neutral-900 px-4 py-3 flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <Layers className="w-4 h-4 text-emerald-500" />
-                                                        <h3 className="font-medium text-sm text-neutral-200">Texture Map Allocations</h3>
-                                                    </div>
-                                                    <span className="text-xs font-mono bg-neutral-800 px-2 py-1 rounded text-neutral-400 border border-neutral-700">{activeTextures.length} VALID PATHS</span>
-                                                </div>
-                                                <div className="p-6 space-y-6">
-                                                    {activeTextures.map((tex, index) => {
-                                                        let label = "Texture Data";
-                                                        if (tex.toLowerCase().includes('_d.') || tex.toLowerCase().includes('_color')) label = "Diffuse Map (Color)";
-                                                        else if (tex.toLowerCase().includes('_n.') || tex.toLowerCase().includes('_normal')) label = "Normal Map (Bump)";
-                                                        else if (tex.toLowerCase().includes('_s.') || tex.toLowerCase().includes('_spec')) label = "Specular Map (Shine)";
-                                                        else if (tex.toLowerCase().includes('_g.') || tex.toLowerCase().includes('_glow')) label = "Glow Map (Emissive)";
-                                                        else if (tex.toLowerCase().includes('_l.') || tex.toLowerCase().includes('_light')) label = "Lighting Map";
+                                            
+                                            {/* Modding Tips Box */}
+                                            <div className="mt-auto border-t border-slate-200 bg-slate-50 p-5">
+                                                <h4 className="text-xs font-bold text-slate-600 mb-3 flex items-center gap-2 uppercase tracking-wide">
+                                                    Modding Tips
+                                                </h4>
+                                                <div className="space-y-3">
+                                                    {moddingTips.map((tip, i) => {
+                                                        let boxStyle = "bg-green-50 border-green-200 text-green-800";
+                                                        let icon = <Info className="w-4 h-4 mt-0.5 shrink-0 text-green-600" />;
                                                         
+                                                        if (tip.level === 'error') {
+                                                            boxStyle = "bg-red-50 border-red-200 text-red-800";
+                                                            icon = <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-red-600" />;
+                                                        } else if (tip.level === 'warn') {
+                                                            boxStyle = "bg-orange-50 border-orange-200 text-orange-800";
+                                                            icon = <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-orange-600" />;
+                                                        } else if (tip.level === 'info') {
+                                                            boxStyle = "bg-blue-50 border-blue-200 text-blue-800";
+                                                            icon = <Info className="w-4 h-4 mt-0.5 shrink-0 text-blue-600" />;
+                                                        }
+
                                                         return (
-                                                            <div key={index} className="group">
-                                                                <div className="flex justify-between items-end mb-2">
-                                                                    <label className="flex items-center gap-2 text-xs font-bold text-neutral-400 uppercase tracking-wider">
-                                                                        {label}
-                                                                        <div className="relative flex items-center justify-center group/tooltip">
-                                                                            <HelpCircle className="w-3.5 h-3.5 text-neutral-600 hover:text-emerald-400 cursor-help" />
-                                                                            <div className="absolute bottom-full mb-2 hidden group-hover/tooltip:block w-48 bg-neutral-800 text-neutral-300 text-[10px] p-2 rounded border border-neutral-700 shadow-xl z-10 normal-case tracking-normal font-normal">
-                                                                                Defines the file path to the .DDS texture loaded by the Creation Engine. Modifying this redirects the shader.
-                                                                            </div>
-                                                                        </div>
-                                                                    </label>
-                                                                    <span className="text-neutral-600 font-mono text-[10px] bg-neutral-950 px-1.5 py-0.5 rounded border border-neutral-800">INDEX {index}</span>
-                                                                </div>
-                                                                <div className="relative group/input">
-                                                                    <input 
-                                                                        type="text" 
-                                                                        value={tex} 
-                                                                        onChange={(e) => handleTextureChange(index, e.target.value)} 
-                                                                        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 pr-12 text-sm font-mono text-neutral-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all group-hover/input:border-neutral-600" 
-                                                                        placeholder="textures\..." 
-                                                                    />
-                                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-700 pointer-events-none select-none group-hover/input:text-neutral-500 transition-colors">
-                                                                        DDS
-                                                                    </div>
-                                                                </div>
+                                                            <div key={i} className={`flex items-start gap-3 p-3 text-sm border rounded-lg shadow-sm ${boxStyle}`}>
+                                                                {icon}
+                                                                <span className="leading-snug">{tip.msg}</span>
                                                             </div>
                                                         );
                                                     })}
                                                 </div>
                                             </div>
-                                        )}
+                                        </div>
+                                    </div>
 
-                                        {/* TAB 2: RAW STRING EDITOR */}
-                                        {activeTab === 'raw' && (
-                                            <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-lg animate-in fade-in flex flex-col h-full min-h-[400px]">
-                                                <div className="border-b border-neutral-800 bg-neutral-900 px-4 py-3 flex justify-between items-center">
-                                                    <div className="flex items-center gap-2">
-                                                        <Code className="w-4 h-4 text-amber-500" />
-                                                        <h3 className="font-medium text-sm text-neutral-200">Raw String Table</h3>
+                                    {/* RIGHT COLUMN: TEXTURE EDITOR & TABS */}
+                                    <div className="col-span-1 lg:col-span-8 xl:col-span-9 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
+                                        
+                                        {/* Standard Friendly Tabs */}
+                                        <div className="flex bg-slate-50 border-b border-slate-200 overflow-x-auto">
+                                            <button onClick={() => setActiveTab('visual')} className={`px-6 py-4 text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap border-b-2 ${activeTab === 'visual' ? 'border-vault-blue text-vault-blue bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
+                                                <Image className="w-4 h-4" /> Textures & Maps
+                                            </button>
+                                            <button onClick={() => setActiveTab('raw')} className={`px-6 py-4 text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap border-b-2 ${activeTab === 'raw' ? 'border-vault-blue text-vault-blue bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
+                                                <Code className="w-4 h-4" /> Advanced (Raw Hex)
+                                            </button>
+                                            <button onClick={() => setActiveTab('log')} className={`px-6 py-4 text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap border-b-2 ${activeTab === 'log' ? 'border-vault-blue text-vault-blue bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
+                                                <List className="w-4 h-4" /> Activity Log
+                                            </button>
+                                        </div>
+
+                                        {/* TAB CONTENT AREAS */}
+                                        <div className="flex-grow flex flex-col relative overflow-hidden">
+                                            
+                                            {/* TAB 1: VISUAL EDITOR */}
+                                            {activeTab === 'visual' && (
+                                                <div className="absolute inset-0 p-6 overflow-y-auto flex flex-col gap-5">
+                                                    <div className="mb-2 flex justify-between items-center">
+                                                        <p className="text-slate-600 text-sm">Update the paths to your custom `.dds` textures below. Paths usually start with <code className="bg-slate-100 px-1.5 py-0.5 rounded text-vault-blue font-mono">textures\</code>.</p>
+                                                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold">{activeTextures.length} Found</span>
                                                     </div>
-                                                    <span className="text-xs text-amber-500/80 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> ADVANCED MODE</span>
-                                                </div>
-                                                <div className="p-4 flex-grow flex flex-col">
-                                                    <p className="text-sm text-neutral-400 mb-4">
-                                                        Edit extracted texture strings directly. <strong className="text-amber-400">Warning:</strong> Altering string paths without accounting for byte offsets may cause in-game corruption if the exporter does not pad the binary correctly.
-                                                    </p>
-                                                    <textarea 
-                                                        value={activeTextures.join('\n')}
-                                                        onChange={handleRawTextChange}
-                                                        className="w-full flex-grow bg-neutral-950 border border-neutral-800 rounded-lg p-4 text-sm font-mono text-neutral-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none whitespace-pre"
-                                                        spellCheck="false"
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
 
-                                        {/* TAB 3: VERIFIER MODULE & LOGS */}
-                                        {activeTab === 'verifier' && (
-                                            <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-lg animate-in fade-in flex flex-col h-full min-h-[400px]">
-                                                <div className="border-b border-neutral-800 bg-neutral-900 px-4 py-3 flex items-center gap-2">
-                                                    <Terminal className="w-4 h-4 text-emerald-500" />
-                                                    <h3 className="font-medium text-sm text-neutral-200">Verbose Telemetry Console</h3>
+                                                    {activeTextures.map((tex, index) => {
+                                                        let label = "Texture Map";
+                                                        let subLabel = "General Surface";
+                                                        const tLower = tex.toLowerCase();
+                                                        
+                                                        if (tLower.includes('_d.') || tLower.includes('_color')) { label = "Base Color (Diffuse)"; subLabel = "The main painting of the object"; }
+                                                        else if (tLower.includes('_n.') || tLower.includes('_normal')) { label = "Normal Map"; subLabel = "Adds fake 3D bumps and scratches"; }
+                                                        else if (tLower.includes('_s.') || tLower.includes('_spec') || tLower.includes('_r.')) { label = "Specular / Roughness"; subLabel = "Controls how shiny or dull it looks"; }
+                                                        else if (tLower.includes('_g.') || tLower.includes('_glow') || tLower.includes('_e.')) { label = "Glow Map"; subLabel = "Parts that light up in the dark"; }
+                                                        else if (tLower.includes('_l.') || tLower.includes('_light')) { label = "Lighting Map"; subLabel = "Baked shadows"; }
+                                                        
+                                                        return (
+                                                            <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-vault-blue/30">
+                                                                <div className="flex justify-between items-start mb-3">
+                                                                    <div>
+                                                                        <label className="text-sm font-bold text-slate-800 block">{label}</label>
+                                                                        <span className="text-xs text-slate-500">{subLabel}</span>
+                                                                    </div>
+                                                                    <span className="text-xs text-slate-400 bg-white px-2 py-1 rounded border border-slate-200 font-mono">Index: {index}</span>
+                                                                </div>
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={tex} 
+                                                                    onChange={(e) => handleTextureChange(index, e.target.value)} 
+                                                                    className="w-full bg-white border border-slate-300 rounded-md px-4 py-3 text-sm text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-vault-blue focus:border-transparent transition-all shadow-inner" 
+                                                                    placeholder="textures\..." 
+                                                                />
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
-                                                <div className="p-0 flex-grow bg-neutral-950 overflow-hidden relative">
-                                                    <div className="absolute inset-0 p-4 font-mono text-[11px] sm:text-xs space-y-1.5 overflow-y-auto custom-scrollbar">
-                                                        {debugLogs.length === 0 && (
-                                                            <div className="text-neutral-600 italic">Waiting for process telemetry...</div>
-                                                        )}
-                                                        {debugLogs.map((log, i) => {
-                                                            let color = "text-neutral-400";
-                                                            let tagColor = "bg-neutral-800 text-neutral-400";
+                                            )}
+
+                                            {/* TAB 2: RAW STRINGS (Advanced) */}
+                                            {activeTab === 'raw' && (
+                                                <div className="absolute inset-0 flex flex-col p-6">
+                                                    <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 rounded-r-md">
+                                                        <h4 className="font-bold text-orange-800 text-sm">Advanced Hex Editing</h4>
+                                                        <p className="text-orange-700 text-xs mt-1">This mode lets you directly edit the string arrays pulled from the binary file. We handle calculating the `uint32` prefixes for you when you save!</p>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-2 overflow-y-auto flex-grow rounded-md border border-slate-200 bg-slate-50 p-2">
+                                                        {activeTextures.map((tex, i) => (
+                                                            <div key={i} className="flex items-stretch bg-white border border-slate-200 rounded-md overflow-hidden focus-within:border-vault-blue focus-within:ring-1 focus-within:ring-vault-blue transition-all">
+                                                                <div className="w-12 flex items-center justify-center bg-slate-100 border-r border-slate-200 text-xs text-slate-500 font-mono font-bold shrink-0">
+                                                                    {(i*4).toString(16).padStart(2,'0').toUpperCase()}
+                                                                </div>
+                                                                <input
+                                                                    type="text"
+                                                                    value={tex}
+                                                                    onChange={(e) => handleTextureChange(i, e.target.value)}
+                                                                    className="flex-grow bg-transparent border-none px-4 py-2.5 text-sm text-slate-700 font-mono focus:outline-none"
+                                                                    spellCheck="false"
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* TAB 3: ACTIVITY LOG */}
+                                            {activeTab === 'log' && (
+                                                <div className="absolute inset-0 bg-slate-900 text-slate-300 font-mono text-xs sm:text-sm p-5 overflow-y-auto">
+                                                    {activityLogs.length === 0 && (
+                                                        <div className="text-slate-600 italic">No activity yet. Open a file to get started!</div>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        {activityLogs.map((log, i) => {
+                                                            let color = "text-slate-400";
+                                                            let tag = "[INFO]";
                                                             
-                                                            if (log.level === 'SUCCESS') { color = "text-emerald-400"; tagColor = "bg-emerald-900/40 text-emerald-400"; }
-                                                            if (log.level === 'ERROR') { color = "text-red-400"; tagColor = "bg-red-900/40 text-red-400"; }
-                                                            if (log.level === 'WARN') { color = "text-amber-400"; tagColor = "bg-amber-900/40 text-amber-400"; }
-                                                            if (log.level === 'INFO') { color = "text-blue-300"; tagColor = "bg-blue-900/40 text-blue-300"; }
-                                                            if (log.level === 'DEBUG') { color = "text-neutral-500"; tagColor = "bg-neutral-800 text-neutral-500"; }
+                                                            if (log.level === 'success') { color = "text-green-400"; tag = "[OK]  "; }
+                                                            if (log.level === 'error') { color = "text-red-400"; tag = "[ERR] "; }
+                                                            if (log.level === 'warn') { color = "text-yellow-400"; tag = "[WARN]"; }
 
                                                             return (
-                                                                <div key={i} className="flex items-start gap-2 hover:bg-neutral-900/50 p-0.5 rounded transition-colors break-words">
-                                                                    <span className="text-neutral-600 shrink-0 select-none">[{log.timestamp}]</span>
-                                                                    <span className={`shrink-0 w-16 text-center rounded text-[9px] font-bold tracking-wider ${tagColor} select-none`}>
-                                                                        {log.level}
-                                                                    </span>
-                                                                    <span className={`${color}`}>{log.message}</span>
+                                                                <div key={i} className="flex items-start gap-3 border-b border-slate-800 pb-1">
+                                                                    <span className="text-slate-600 shrink-0">[{log.timestamp}]</span>
+                                                                    <span className={`${color} font-bold shrink-0`}>{tag}</span>
+                                                                    <span className="text-slate-200">{log.message}</span>
                                                                 </div>
                                                             );
                                                         })}
-                                                        <div ref={(el) => { if(el) el.scrollIntoView({ behavior: 'smooth' }); }} />
                                                     </div>
+                                                    <div ref={(el) => { if(el) el.scrollIntoView({ behavior: 'smooth' }); }} />
                                                 </div>
-                                            </div>
-                                        )}
-
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -568,22 +672,5 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
-
-    <style>
-        /* Custom scrollbar for terminal */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #0a0a0a; 
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #262626; 
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #404040; 
-        }
-    </style>
 </body>
 </html>
